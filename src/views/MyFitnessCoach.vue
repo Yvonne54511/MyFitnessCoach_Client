@@ -12,21 +12,46 @@
       <div class="nav-links">
         <a href="#nutritionists" @click.prevent="scrollTo('#nutritionists')">營養師團隊</a>
         <a href="#pricing"       @click.prevent="scrollTo('#pricing')">課程方案</a>
-        <a href="#tracking"      @click.prevent="scrollTo('#tracking')">飲食追蹤</a>
+        <router-link to="/health-tracker/reports">健康追蹤</router-link>
         <a href="#shop"          @click.prevent="scrollTo('#shop')">健康商城</a>
-
       </div>
 
-      
       <div class="d-flex align-items-center nav-right-group">
-        <a href="#cta" class="nav-cta" @click.prevent="scrollTo('#cta')">立即加入</a>
-        <router-link :to="{name:'info'}">關於我</router-link>
-      </div>
-      
-      
+        <template v-if="!isLoggedIn">
+          <router-link :to="{name:'register'}" class="nav-cta">立即加入</router-link>
+          <router-link :to="{name:'login'}" class="nav-cta nav-cta-ghost">會員登入</router-link>
+        </template>
+        <template v-else>
+          <div class="user-menu" @click.stop="toggleDropdown">
+            <img class="user-avatar" :src="imageUrl || NO_IMAGE" :alt="username" />
+            <span class="user-name">{{ username }}</span>
+            <span class="dropdown-arrow" :class="{ open: isDropdownOpen }">▾</span>
+            <div class="user-dropdown" v-show="isDropdownOpen" @click.stop>
+              <router-link :to="{name:'info'}" class="dropdown-item">修改個人資料</router-link>
+              <router-link :to="{name:'changepwd'}" class="dropdown-item">修改密碼</router-link>
+              <router-link to="/points" class="dropdown-item">點數查詢</router-link>
+              <router-link to="/reserveorders" class="dropdown-item">課程預約查詢</router-link>
+              <router-link to="/coupons" class="dropdown-item">我的優惠券</router-link>
+              <router-link to="/orders" class="dropdown-item">訂單查詢</router-link>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-item dropdown-logout" @click="handleLogout">會員登出</button>
+            </div>
+          </div>
+        </template>
 
-      <!-- 手機漢堡按鈕 -->
-      <button class="mobile-toggle" @click="toggleMenu" aria-label="Menu">☰</button>
+        <!-- 購物車入口(訪客也可見,固定放在最右) -->
+        <RouterLink to="/cart" class="nav-cart-link" aria-label="前往購物車">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="21" r="1" />
+            <circle cx="20" cy="21" r="1" />
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+          </svg>
+          <span v-if="itemCount > 0" class="nav-cart-badge">{{ itemCount }}</span>
+        </RouterLink>
+
+        <!-- 手機漢堡按鈕 -->
+        <button class="mobile-toggle" @click="toggleMenu" aria-label="Menu">☰</button>
+      </div>
     </div>
   </nav>
 
@@ -34,9 +59,26 @@
   <div class="mobile-menu" :class="{ open: isMobileMenuOpen }">
     <a href="#nutritionists" @click.prevent="menuScrollTo('#nutritionists')">營養師團隊</a>
     <a href="#pricing"       @click.prevent="menuScrollTo('#pricing')">課程方案</a>
-    <a href="#tracking"      @click.prevent="menuScrollTo('#tracking')">飲食追蹤</a>
+    <RouterLink to="/health-tracker/reports" @click="isMobileMenuOpen = false">健康追蹤</RouterLink>
     <a href="#shop"          @click.prevent="menuScrollTo('#shop')">健康商城</a>
-    <a href="#cta"           @click.prevent="menuScrollTo('#cta')">立即加入</a>
+    <template v-if="!isLoggedIn">
+      <a href="#cta" @click.prevent="menuScrollTo('#cta')">立即加入</a>
+      <router-link :to="{name:'login'}" @click="isMobileMenuOpen = false">會員登入</router-link>
+    </template>
+    <template v-else>
+      <div class="mobile-user-info">
+        <img class="user-avatar" :src="imageUrl || NO_IMAGE" :alt="username" />
+        <span class="user-name">{{ username }}</span>
+      </div>
+      <div class="dropdown-divider"></div>
+      <router-link to="/personalInfo" @click="isMobileMenuOpen = false" class="mobile-menu-item">修改個人資料</router-link>
+      <a href="#" class="mobile-menu-item">帳號安全</a>
+      <a href="#" class="mobile-menu-item">點數查詢</a>
+      <router-link to="/reserveorders" @click="isMobileMenuOpen = false" class="mobile-menu-item">課程預約查詢</router-link>
+      <router-link to="/coupons" @click="isMobileMenuOpen = false" class="mobile-menu-item">我的優惠券</router-link>
+      <router-link to="/orders" @click="isMobileMenuOpen = false" class="mobile-menu-item">訂單查詢</router-link>
+      <button class="mobile-menu-item mobile-logout" @click="handleLogout">會員登出</button>
+    </template>
   </div>
 
   <!-- ========== HERO ========== -->
@@ -70,7 +112,7 @@
     <!-- 渲染兩組達成 CSS 無縫循環效果 -->
     <div class="testimonial-track">
       <div
-        v-for="(item, idx) in reviews"
+        v-for="(item, idx) in [...reviewList, ...reviewList]"
         :key="idx"
         class="testimonial-card"
       >
@@ -85,6 +127,10 @@
         <p class="testimonial-text">{{ item.text }}</p>
       </div>
     </div>
+
+    <div class="testimonial-more reveal">
+      <RouterLink to="/AllReviews" class="btn-outline">查看所有評論</RouterLink>
+    </div>
   </section>
 
   <!-- ========== 營養師團隊 ========== -->
@@ -98,14 +144,17 @@
             自選營養師、自選時段，你的健康你做主。
           </p>
         </div>
-        <a href="#pricing" class="btn-outline reveal rd2" @click.prevent="scrollTo('#pricing')">課程套組方案</a>
+        <div class="reveal rd2">
+          <RouterLink to="/AllInstructor" class="btn-outline">顯示全部營養師</RouterLink>
+          <a href="#pricing" class="btn-outline" @click.prevent="scrollTo('#pricing')">課程套組方案</a>
+        </div>
       </div>
 
       <!-- 輪播軌道 -->
       <div class="nutri-track-wrap">
         <div class="nutri-track" ref="nutriTrackRef">
           <div
-            v-for="(nutri, idx) in instructors"
+            v-for="(nutri, idx) in allInstructors"
             :key="nutri.name"
             class="nutri-card reveal"
             :class="`rd${idx}`"
@@ -120,12 +169,12 @@
               <div class="nutri-tags">
                 <span v-for="tag in nutri.tags" :key="tag" class="nutri-tag">{{ tag }}</span>
               </div>
-              <a href="#" class="book-link">
-                馬上預約
+              <RouterLink :to="{ name: 'ReserveDetail', params: { id: nutri.id } }" target="_blank" class="book-link">
+                馬上預約諮詢
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                   <path d="m9 18 6-6-6-6" />
                 </svg>
-              </a>
+              </RouterLink>
             </div>
           </div>
         </div>
@@ -150,10 +199,18 @@
   <!-- ========== 課程方案 ========== -->
   <section class="pricing" id="pricing">
     <div class="container">
-      <div style="text-align:center;">
-        <div class="scroll-label reveal">課程套組方案</div>
-        <h2 class="pricing-title reveal rd1">選擇最適合你的方案</h2>
-        <p class="pricing-subtitle reveal rd2">套組結帳後自動轉換為儲值點數，預約時可彈性扣抵使用</p>
+      <div class="pricing-header">
+        <div style="text-align:center;">
+          <div class="scroll-label reveal">課程套組方案</div>
+          <h2 class="pricing-title reveal rd1">選擇最適合你的方案</h2>
+          <p class="pricing-subtitle reveal rd2">套組結帳後自動轉換為儲值點數，預約時可彈性扣抵使用</p>
+        </div>
+        <RouterLink to="/lesson" class="btn-all-plans reveal rd2" aria-label="查看所有儲值方案">
+          查看所有方案
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </RouterLink>
       </div>
 
       <div class="pricing-grid">
@@ -238,45 +295,37 @@
         <RouterLink to="/store" target="_blank" class="btn-outline reveal rd2">查看全部商品</RouterLink>
       </div>
 
-      <!-- 分類 Tab -->
-      <div class="shop-tabs reveal">
-        <button
-          v-for="tab in shopTabs"
-          :key="tab"
-          class="shop-tab"
-          :class="{ active: activeTab === tab }"
-          @click="activeTab = tab"
-        >
-          {{ tab }}
-        </button>
-      </div>
-
       <!-- 商品卡片 -->
       <div class="shop-grid">
         <div
-          v-for="(product, idx) in shopProducts"
-          :key="product.name"
+          v-for="(product, idx) in landingProducts"
+          :key="product.id"
           class="shop-card reveal"
           :class="`rd${idx}`"
         >
           <div class="shop-img-wrap">
-            <span v-if="product.badge" class="shop-card-badge">{{ product.badge }}</span>
-            <img :src="product.img" :alt="product.name" class="shop-img" />
+            <span v-if="hasDiscount(product)" class="shop-card-badge">特價</span>
+            <img
+              :src="getProductImagePath(product.id)"
+              :alt="product.name"
+              class="shop-img"
+            />
           </div>
           <div class="shop-body">
-            <div class="shop-category">{{ product.category }}</div>
+            <div class="shop-category">{{ product.categoryName }}</div>
             <h3>{{ product.name }}</h3>
             <div class="shop-price">
-              {{ product.price }}
-              <span v-if="product.original" class="original">{{ product.original }}</span>
+              {{ formatPrice(product.unitPrice) }}
+              <span v-if="hasDiscount(product)" class="original">
+                {{ formatPrice(product.originalPrice) }}
+              </span>
             </div>
           </div>
         </div>
       </div>
-
-      <div class="shop-more reveal">
-        <a href="#" class="btn-outline">探索更多商品</a>
-      </div>
+      <!-- <div class="shop-more reveal">
+        <RouterLink to="/store" class="btn-outline">探索更多商品</RouterLink>
+      </div> -->
     </div>
   </section>
 
@@ -284,8 +333,27 @@
   <section class="final-cta reveal" id="cta">
     <h2>你的理想體態<br />從這裡開始</h2>
     <p>結合營養諮詢、飲食追蹤與健康商城，My Fitness Coach 陪你走每一步。</p>
-    <a href="#" class="btn-dark">立即加入會員</a>
+    <button v-if="!isLoggedIn" @click="openAuthModal('register')" class="btn-dark">立即加入會員</button>
+    <router-link v-else :to="{name:'info'}" class="btn-dark">查看個人首頁</router-link>
   </section>
+
+  <!-- 認證彈窗 (登入/註冊) -->
+  <BaseModal :show="showAuthModal" @close="showAuthModal = false">
+    <div v-if="authMode === 'register'">
+      <RegisterForm @success="handleAuthSuccess" />
+      <p class="auth-switch-hint">
+        已有帳號？
+        <button @click="authMode = 'login'" class="auth-switch-link">立即登入</button>
+      </p>
+    </div>
+    <div v-else>
+      <LoginForm @success="handleAuthSuccess" />
+      <p class="auth-switch-hint">
+        還沒有帳號？
+        <button @click="authMode = 'register'" class="auth-switch-link">加入會員</button>
+      </p>
+    </div>
+  </BaseModal>
 
   <!-- ========== FOOTER ========== -->
   <footer class="footer">
@@ -321,26 +389,179 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useNavbar } from '@/composables/useNavbar'
 import { useReveal } from '@/composables/useReveal'
 import { useNutriCarousel } from '@/composables/useNutriCarousel'
-import { reviews } from '@/data/reviews'
-import { instructors } from '@/data/instructors'
+import { useInstructors } from '@/composables/useInstructors'
+import { useReviews } from '@/composables/useReviews'
+import { useCart } from '@/composables/useCart'
 import { plans } from '@/data/plans'
 import { trackingItems } from '@/data/tracking'
-import { shopTabs, shopProducts } from '@/data/shop'
 import { footerCols } from '@/data/footer'
+import { logout } from '@/data/login'
+import { useProducts } from '@/composables/useProducts'
+import { getProductImagePath, type Product } from '@/data/products'
+import BaseModal from '@/components/BaseModal.vue'
+import RegisterForm from '@/components/RegisterForm.vue'
+import LoginForm from '@/components/LoginForm.vue'
 
+const router = useRouter()
+const route = useRoute()
 const { isScrolled, isMobileMenuOpen, toggleMenu, scrollTo, menuScrollTo } = useNavbar()
 const { nutriTrackRef, slideNutri } = useNutriCarousel()
 useReveal({ threshold: 0.08, rootMargin: '0px 0px -30px 0px' })
 
+// // 登入狀態
+// const username = ref(localStorage.getItem('username') || '')
+// const isLoggedIn = ref(!!localStorage.getItem('username'))
+
+// const NO_IMAGE = '/StaticFiles/images/NoImage.jpg'
+
+// function toAvatarSrc(url: string): string {
+//   if (!url) return NO_IMAGE
+//   if (url.startsWith('http') || url.startsWith('/StaticFiles') || url.startsWith('/images')) return url
+//   return `/StaticFiles${url}`
+// }
+
+// const imageUrl = ref(toAvatarSrc(localStorage.getItem('imageUrl') || ''))
+// const isDropdownOpen = ref(false)
+
+// function toggleDropdown() {
+//   isDropdownOpen.value = !isDropdownOpen.value
+// }
+
+// function closeDropdown() {
+//   isDropdownOpen.value = false
+// }
+
+// function handleLogout() {
+//   logout()
+//   localStorage.removeItem('username')
+//   username.value = ''
+//   imageUrl.value = toAvatarSrc('')
+//   isLoggedIn.value = false
+//   isDropdownOpen.value = false
+// }
+
+// onMounted(() => document.addEventListener('click', closeDropdown))
+// onUnmounted(() => document.removeEventListener('click', closeDropdown))
+
+// 登入狀態：改用 username 作為 UX hint（真正授權由後端 HttpOnly cookie + 401 控制）
+const username = ref(localStorage.getItem('username') || '')
+const isLoggedIn = ref(!!localStorage.getItem('username'))
+
+const NO_IMAGE = '/StaticFiles/images/NoImage.jpg'
+
+function toAvatarSrc(url: string): string {
+  if (!url) return NO_IMAGE
+  if (url.startsWith('http') || url.startsWith('/StaticFiles') || url.startsWith('/images') || url.startsWith('/img')) return url
+  return `/StaticFiles${url}`
+}
+
+const imageUrl = ref(toAvatarSrc(localStorage.getItem('imageUrl') || ''))
+const isDropdownOpen = ref(false)
+
+// Modal 邏輯
+const showAuthModal = ref(false)
+const authMode = ref<'login' | 'register'>('register')
+const hasTriggeredModal = ref(false)
+
+function openAuthModal(mode: 'login' | 'register' = 'register') {
+  if (!isLoggedIn.value) {
+    authMode.value = mode
+    showAuthModal.value = true
+  }
+}
+
+function handleAuthSuccess() {
+  setTimeout(() => {
+    showAuthModal.value = false
+    window.location.reload() // 重新整理頁面以更新登入狀態
+  }, 2000)
+}
+
+function toggleDropdown() {
+  isDropdownOpen.value = !isDropdownOpen.value
+}
+
+function closeDropdown() {
+  isDropdownOpen.value = false
+}
+
+async function handleLogout() {
+  await logout()
+  username.value = ''
+  imageUrl.value = toAvatarSrc('')
+  isLoggedIn.value = false
+  isDropdownOpen.value = false
+
+  // 若當前路由需登入,登出後踢回登入頁
+  if (route.meta.requiresAuth) {
+    router.push({ name: 'login' })
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeDropdown)
+  
+  // 捲動觸發 Modal
+  const ctaSection = document.getElementById('cta')
+  if (ctaSection) {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting && !isLoggedIn.value && !hasTriggeredModal.value) {
+          openAuthModal('register')
+          hasTriggeredModal.value = true
+        }
+      })
+    }, { threshold: 0.5 })
+    observer.observe(ctaSection)
+  }
+})
+
+function handleProfileUpdated(e: Event) {
+  const detail = (e as CustomEvent<{ userName?: string; imageUrl?: string }>).detail
+  if (detail.userName) username.value = detail.userName
+  if (detail.imageUrl) imageUrl.value = toAvatarSrc(detail.imageUrl)
+}
+
+onMounted(() => {
+  document.addEventListener('click', closeDropdown)
+  window.addEventListener('profile-updated', handleProfileUpdated)
+})
+onUnmounted(() => {
+  document.removeEventListener('click', closeDropdown)
+  window.removeEventListener('profile-updated', handleProfileUpdated)
+})
+
+const { allInstructors, loadInstructors } = useInstructors()
+const { reviewList, loadReviews } = useReviews()
+const { landingProducts, loadLandingProducts } = useProducts()
+const { itemCount } = useCart()
+
+onMounted(async () => {
+  await Promise.all([
+    loadInstructors(),
+    loadReviews(),
+    loadLandingProducts(4)
+  ])
+})
+
+function formatPrice(n: number): string {
+  return `NT$${Math.floor(n).toLocaleString()}`
+}
+
+function hasDiscount(p: Product): boolean {
+  return p.originalPrice > p.unitPrice
+}
+
+// handleScroll 已由 useNavbar 處理，若無特殊用途可移除
+
 function handleScroll() {
   isScrolled.value = window.scrollY > 40
 }
-
 
 </script>
 
@@ -384,10 +605,51 @@ function handleScroll() {
 .nav-right-group{
   display: flex;
   align-items: center;
+  gap: 12px;
 }
 
 .nav-right-group .nav-cta {
-  margin-right: 20px;
+  margin-right: 0;
+}
+
+/* ── 購物車入口(navbar 內嵌版) ─────────────── */
+.nav-cart-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  color: var(--text-primary);
+  background: transparent;
+  transition: all 0.3s;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.nav-cart-link:hover {
+  border-color: var(--text-primary);
+  background: rgba(26, 22, 19, 0.06);
+}
+
+.nav-cart-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--bg-dark);
+  color: var(--text-light);
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .nav-logo {
@@ -439,6 +701,112 @@ function handleScroll() {
   background: #2d2620;
   transform: translateY(-1px);
   box-shadow: 0 4px 16px rgba(26, 22, 19, 0.15);
+}
+
+.nav-cta.nav-cta-ghost {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1.5px solid var(--text-primary);
+  box-shadow: none;
+}
+
+.nav-cta.nav-cta-ghost:hover {
+  background: rgba(26, 22, 19, 0.06);
+  transform: translateY(-1px);
+  box-shadow: none;
+}
+
+/* ── USER MENU ──────────────────────────────── */
+.user-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 100px;
+  transition: background 0.2s;
+  user-select: none;
+}
+.user-menu:hover { background: rgba(26, 22, 19, 0.06); }
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border);
+}
+
+.user-name {
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.dropdown-arrow {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  transition: transform 0.2s;
+  line-height: 1;
+}
+.dropdown-arrow.open { transform: rotate(180deg); }
+
+.user-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(26, 22, 19, 0.12);
+  overflow: hidden;
+  z-index: 200;
+}
+
+.dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 11px 16px;
+  font-size: 0.88rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+  font-family: var(--font-body);
+}
+.dropdown-item:hover { background: var(--bg-card); }
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.dropdown-logout { color: #c0392b; }
+.dropdown-logout:hover { background: #fdf0ee; }
+
+/* ── MOBILE MENU USER ITEMS ─────────────────── */
+.mobile-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0 8px;
+}
+
+.mobile-logout {
+  width: 100%;
+  background: none;
+  border: none;
+  text-align: left;
+  font-family: var(--font-body);
+  cursor: pointer;
+  color: #c0392b;
 }
 
 .mobile-toggle {
@@ -604,6 +972,8 @@ function handleScroll() {
   100% { transform: translateX(-50%); }
 }
 
+.testimonial-more { text-align: center; margin-top: 40px; }
+
 /* ── 營養師 ───────────────────────────────────── */
 .nutritionists { padding: 100px 0; }
 
@@ -665,7 +1035,7 @@ function handleScroll() {
 
 .nutri-img-wrap { overflow: hidden; height: 300px; position: relative; }
 
-.nutri-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s; }
+.nutri-img { width: 100%; height: 100%; object-fit: cover; object-position: top; transition: transform 0.6s; }
 .nutri-card:hover .nutri-img { transform: scale(1.04); }
 
 .nutri-body { padding: 28px; }
@@ -726,6 +1096,36 @@ function handleScroll() {
 
 /* ── 課程方案 ─────────────────────────────────── */
 .pricing { padding: 100px 0; }
+
+.pricing-header {
+  position: relative;
+  margin-bottom: 48px;
+}
+
+.btn-all-plans {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 20px;
+  border-radius: 100px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1.5px solid var(--border);
+  color: var(--text-secondary);
+  background: transparent;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.btn-all-plans:hover {
+  background: var(--bg-dark);
+  color: var(--text-light);
+  border-color: var(--bg-dark);
+  gap: 10px;
+}
 
 /* inline style 替代：統一在 class 管理 */
 .pricing-title {
@@ -1063,9 +1463,31 @@ function handleScroll() {
   transition: all 0.3s;
 }
 
-.btn-dark:hover { background: #2d2620; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(26,22,19,0.15); }
+.btn-dark:hover { background: #2d2620; transform: translateY(-2px); box-shadow: 0 8px 24px rgba(26, 22, 19, 0.15); }
+
+/* ── AUTH MODAL SWITCH ─────────────────────── */
+.auth-switch-hint {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+.auth-switch-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent-dark);
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  text-decoration: none;
+  transition: color 0.2s;
+  margin-left: 4px;
+}
+.auth-switch-link:hover { color: var(--text-primary); }
 
 /* ── FOOTER ───────────────────────────────────── */
+
 .footer {
   background: var(--bg-dark);
   color: var(--text-light);
@@ -1139,6 +1561,152 @@ function handleScroll() {
 .rd2 { transition-delay: 0.2s; }
 .rd3 { transition-delay: 0.3s; }
 .rd4 { transition-delay: 0.4s; }
+
+/* ── 領獎台 (Kahoot 樣式) ───────────────────────── */
+.podium-container {
+  margin-top: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  min-height: 480px;
+  padding-bottom: 20px;
+}
+
+.podium {
+  display: flex;
+  align-items: flex-end;
+  gap: 15px;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.podium-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 排序：2, 1, 3 */
+.rank-2 { order: 1; }
+.rank-1 { order: 2; z-index: 2; }
+.rank-3 { order: 3; }
+
+.podium-card {
+  width: 100%;
+  max-width: 240px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 24px 15px;
+  margin-bottom: 12px;
+  box-shadow: 0 10px 30px rgba(26, 22, 19, 0.08);
+  text-align: center;
+  border: 1px solid rgba(212, 204, 194, 0.4);
+  transition: transform 0.3s ease;
+}
+
+.podium-item:hover .podium-card {
+  transform: translateY(-8px);
+}
+
+.podium-img-wrap {
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.rank-1 .podium-img-wrap {
+  width: 120px;
+  height: 120px;
+  border-color: var(--accent);
+}
+
+.podium-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.crown {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-10deg);
+  font-size: 2rem;
+  z-index: 3;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+.podium-info h3 {
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.podium-specialty {
+  font-size: 0.78rem;
+  color: var(--accent-dark);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.podium-base {
+  width: 100%;
+  border-radius: 12px 12px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.4s ease;
+}
+
+.podium-base::after {
+  content: attr(data-rank);
+  font-family: var(--font-display);
+  font-size: 3.5rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.base-1 { 
+  height: 200px; 
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dark) 100%); 
+  box-shadow: 0 10px 25px rgba(196, 168, 130, 0.3);
+}
+.base-2 { 
+  height: 140px; 
+  background: linear-gradient(180deg, #bdc3c7 0%, #7f8c8d 100%); 
+  box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+.base-3 { 
+  height: 100px; 
+  background: linear-gradient(180deg, #d35400 0%, #a04000 100%); 
+  box-shadow: 0 10px 15px rgba(211, 84, 0, 0.2);
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+  .podium-container { min-height: 400px; padding: 0 10px; }
+  .podium { gap: 8px; }
+  .podium-card { padding: 15px 8px; }
+  .podium-img-wrap { width: 60px; height: 60px; }
+  .rank-1 .podium-img-wrap { width: 80px; height: 80px; }
+  .podium-info h3 { font-size: 0.95rem; }
+  .podium-specialty { font-size: 0.65rem; }
+  .podium-base::after { font-size: 2.2rem; }
+  .base-1 { height: 140px; }
+  .base-2 { height: 100px; }
+  .base-3 { height: 70px; }
+  .crown { font-size: 1.4rem; top: -10px; }
+}
 
 /* ── 手機選單 ─────────────────────────────────── */
 .mobile-menu {
